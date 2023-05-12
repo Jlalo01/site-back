@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const vfxSchema = new Schema({
-    tag:{
-        type: String,
-        required: true
-    },
     link:{
         type: String,
         required: true
