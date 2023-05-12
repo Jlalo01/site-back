@@ -7,6 +7,7 @@ const short = require("./models/short");
 const cine = require("./models/cinematics");
 const vfx = require("./models/vfx");
 const doc = require("./models/doc");
+const prog = require("./models/program");
 const app = express();
 
 
@@ -54,7 +55,12 @@ app.get('/docs', async (req, res) => {
 
 app.get('/vfx', async (req, res) => {
     const data = await vfx.find({}).exec();
-    res.send(data);
+    res.json(data);
+});
+
+app.get("/prog", async (req, res) =>{
+    const data = await prog.find({}).exec();
+    res.json(data)
 });
 
 app.post("/login", (req, res) => {
