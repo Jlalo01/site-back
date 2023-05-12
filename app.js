@@ -1,11 +1,22 @@
 const morgan = require('morgan');
 const fs = require("fs");
 const express = require('express');
+const mongoose = require('mongoose');
+const home = require("./models/home");
+const short = require("./models/short");
+const cine = require("./models/cinematics");
+const vfx = require("./models/vfx");
+const doc = require("./models/doc");
 const app = express();
 
 
 app.use(morgan('dev'));
 app.use(express.json());
+
+mongoose
+  .connect("mongodb+srv://joeylalo13:qwased@cluster0.7h70lf4.mongodb.net/?retryWrites=true&w=majority")
+  .then((data) => console.log(`Connected to MongoDB`))
+  .catch((err) => console.error(`Failed to connect to MongoDB: ${err}`));
 
 app.use(function(req, res, next){
     res.header("Access-Control-Allow-Origin", "*");
@@ -16,34 +27,34 @@ app.use(function(req, res, next){
 app.use(express.urlencoded({ extended: true }));
 
 
-app.get('/shorts', (req, res) => {
-    const data = require('./data/shorts.json');
+app.get('/shorts', async (req, res) => {
+    const data = await short.find({}).exec();
     res.json(data);
 });
 
-app.get('/shorts/:short', (req, res) => {
-    const data = require('./data/shorts.json');
-    res.json(data[req.params.short]);
-});
-
-app.get('/home', (req, res) => {
-    const data = require('./data/home.json');
+app.get('/shorts/:short', async (req, res) => {
+    const data = await short.find({tag:req.params.short}).exec();
     res.json(data);
 });
 
-app.get('/cine', (req, res) => {
-    const data = require('./data/cinematics.json');
+app.get('/home', async (req, res) => {
+    const data = await home.find({}).exec();
     res.json(data);
 });
 
-app.get('/docs', (req, res) => {
-    const data = require('./data/docs.json');
+app.get('/cine', async (req, res) => {
+    const data = await cine.find({}).exec();
     res.json(data);
 });
 
-app.get('/vfx', (req, res) => {
-    const data = require('./data/vfx.json');
+app.get('/docs', async (req, res) => {
+    const data = await doc.find({}).exec();
     res.json(data);
+});
+
+app.get('/vfx', async (req, res) => {
+    const data = await vfx.find({}).exec();
+    res.send(data);
 });
 
 app.post("/login", (req, res) => {
