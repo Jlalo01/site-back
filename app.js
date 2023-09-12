@@ -2,14 +2,20 @@ const morgan = require('morgan');
 const fs = require("fs");
 const express = require('express');
 const mongoose = require('mongoose');
-const home = require("./models/home");
-const short = require("./models/short");
-const cine = require("./models/cinematics");
-const vfx = require("./models/vfx");
-const doc = require("./models/doc");
+const bcrypt = require('bcrypt');
 const prog = require("./models/program");
+const user = require("./models/user");
+const video = require("./models/video");
+const slide = require("./models/slide");
+const photo = require("./models/photo");
+const category = require("./models/category");
+const { clearLine } = require('readline');
 const app = express();
 
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
 
 app.use(morgan('dev'));
 app.use(express.json());
@@ -28,33 +34,46 @@ app.use(function(req, res, next){
 app.use(express.urlencoded({ extended: true }));
 
 
-app.get('/shorts', async (req, res) => {
-    const data = await short.find({}).exec();
+//Send a video found by it's tag set in the parameters
+app.get("/video/tag/:theTag", async (req, res) => {
+    const data = await video.find({tag:req.params.theTag});
     res.json(data);
 });
 
-app.get('/shorts/:short', async (req, res) => {
-    const data = await short.find({tag:req.params.short}).exec();
+//Send all the categories in random order
+app.get("/categories/random", async (req, res) => {
+    const data = await category.find({});
+    data.forEach((on, i)=>{
+        let flip = Math.floor(Math.random()*i);
+        data[i] = data[flip]
+        data[flip] = on;
+    });
     res.json(data);
 });
 
-app.get('/home', async (req, res) => {
-    const data = await home.find({}).exec();
+//Send all the categories in order of creation
+app.get("/categories", async (req, res) => {
+    const data = await category.find({});
     res.json(data);
 });
 
-app.get('/cine', async (req, res) => {
-    const data = await cine.find({}).exec();
+//Send all the videos that fit a specific category set in the parameters
+app.get("/video/cat/:theCat", async (req, res) => {
+    const data = await video.find({category:req.params.theCat});
     res.json(data);
 });
 
-app.get('/docs', async (req, res) => {
-    const data = await doc.find({}).exec();
+app.get("/video/ord-cat/:theCat", async (req, res) => {
+    const data = await video.find({category:req.params.theCat});
+    data.sort((a, b) => {
+        return b.createdAt - a.createdAt;
+    });
     res.json(data);
 });
 
-app.get('/vfx', async (req, res) => {
-    const data = await vfx.find({}).exec();
+//Send the Slides information
+app.get("/slides", async (req, res)=> {
+    const data = await slide.find({});
     res.json(data);
 });
 
@@ -63,127 +82,23 @@ app.get("/prog", async (req, res) =>{
     res.json(data)
 });
 
-app.post("/login", (req, res) => {
-    if (req.body.user === "jlalo01" && req.body.pass === "Thepass"){res.json({stat:"approved"});}
-    else{res.json({stat:"denied"});}
-});
 
-app.post("/short", (req, res) => {
-    const data = require("./data/shorts.json");
-    if (req.body.id in data){
-        res.json({stat:"rep"});
-    }
-    else if (req.body.id.includes(" ")){res.json({stat:"space"});}
-    else if (req.body.date.includes("undefined")){res.json({stat:"fd"});}
-    else{
-        let n = {};
-        n[req.body.id] = {
-            link: req.body.link,
-            name: req.body.name,
-            date: req.body.date,
-            cast: req.body.cast,
-            synopsis: req.body.synopsis,
-            writer: req.body.writer,
-            director: req.body.director,
-            editor: req.body.editor,
-            camera: req.body.camera,
-            audio: req.body.audio
+
+app.post("/up-prog", async (req, res) => {
+    const data = req.body;
+    const u = await user.findOne({user:"jlalo"});
+    if (await bcrypt.compare(data.pass, u.pass)){
+        delete data["pass"];
+        try{
+            prog.create(data);
+        } catch(err){
+            console.log(err);
+            res.send(false);
+        } finally{
+            res.send(true);
         }
-        let ids = [];
-        for (let id in data){ids.push(id);}
-        ids.forEach(element => {
-            n[element] = data[element];
-        });
-        const fin = JSON.stringify(n);
-        fs.writeFile('./data/shorts.json', fin, function(err){console.log(err);});
-        res.json({stat:"approved"});
     }
+    else{res.send(false);}
 });
-
-app.post("/homes", (req, res) => {
-    if (req.body.name === "" || req.body.link === ""){res.json({stat:"miss"});}
-    else{
-        fs.writeFile('./data/home.json', JSON.stringify(req.body), function(err){console.log(err);});
-        res.json({stat:"approved"});  
-    }
-});
-
-app.post("/cine", (req, res) => {
-    const data = require("./data/cinematics.json");
-    if (req.body.id in data){
-        res.json({stat:"rep"});
-    }
-    else if (req.body.id.includes(" ")){res.json({stat:"space"});}
-    else{
-        let n = {};
-        n[req.body.id] = {
-            link: req.body.link,
-            name: req.body.name,
-            info: req.body.info,
-            camera: req.body.camera,
-            lense: req.body.lense
-        }
-        let ids = [];
-        for (let id in data){ids.push(id);}
-        ids.forEach(element => {
-            n[element] = data[element];
-        });
-        const fin = JSON.stringify(n);
-        fs.writeFile('./data/cinematics.json', fin, function(err){console.log(err);});
-        res.json({stat:"approved"});
-    }
-});
-
-app.post("/docs", (req, res) => {
-    const data = require("./data/docs.json");
-    if (req.body.id in data){
-        res.json({stat:"rep"});
-    }
-    else if (req.body.id.includes(" ")){res.json({stat:"space"});}
-    else{
-        let n = {};
-        n[req.body.id] = {
-            link: req.body.link,
-            name: req.body.name,
-            info: req.body.info,
-        }
-        let ids = [];
-        for (let id in data){ids.push(id);}
-        ids.forEach(element => {
-            n[element] = data[element];
-        });
-        const fin = JSON.stringify(n);
-        fs.writeFile('./data/docs.json', fin, function(err){console.log(err);});
-        res.json({stat:"approved"});
-    }
-});
-
-app.post("/vfx", (req, res) => {
-    const data = require("./data/vfx.json");
-    if (req.body.id in data){
-        res.json({stat:"rep"});
-    }
-    else if (req.body.id.includes(" ")){res.json({stat:"space"});}
-    else if (req.body.tags.includes(" ")){res.json({stat:"tspace"});}
-    else{
-        const t = req.body.tags.split("/");
-        let n = {};
-        n[req.body.id] = {
-            link: req.body.link,
-            name: req.body.name,
-            info: req.body.info,
-            tags: t
-        };
-        let ids = [];
-        for (let id in data){ids.push(id);}
-        ids.forEach(element => {
-            n[element] = data[element];
-        });
-        const fin = JSON.stringify(n);
-        fs.writeFile('./data/vfx.json', fin, function(err){console.log(err);});
-        res.json({stat:"approved"});
-    }
-});
-
 
 module.exports = app;
