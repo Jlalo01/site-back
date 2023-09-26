@@ -85,7 +85,7 @@ app.get("/photos", async (req, res) =>{
 });
 
 //Send all photos in order, newest at 0 index
-app.get("photos-ord", async (req, res) => {
+app.get("/photos-ord", async (req, res) => {
     const data = await photo.find({});
     data.sort((a, b) =>{
         return b.createdAt - a.createdAt;
