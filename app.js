@@ -34,6 +34,12 @@ app.use(function(req, res, next){
 app.use(express.urlencoded({ extended: true }));
 
 
+//Send all Videos
+app.get("/videos", async (req, res) => {
+    const data = await video.find({});
+    res.json(data);
+});
+
 //Send a video found by it's tag set in the parameters
 app.get("/video/tag/:theTag", async (req, res) => {
     const data = await video.find({tag:req.params.theTag});
@@ -78,18 +84,24 @@ app.get("/video/ord-cat/:theCat", async (req, res) => {
     res.json(data);
 });
 
-//Send all photos
+//Send all Photos
 app.get("/photos", async (req, res) =>{
-    const data = await photo.find({});
+    const data = await photo.find();
     res.json(data);
 });
 
-//Send all photos in order, newest at 0 index
+//Send all Photos in order, newest at 0 index
 app.get("/photos-ord", async (req, res) => {
     const data = await photo.find({});
     data.sort((a, b) =>{
         return b.createdAt - a.createdAt;
     });
+    res.json(data);
+});
+
+//Send Photo found by tag
+app.get("/photos/tag/:theTag", async (req, res) => {
+    const data = await photo.find({tag:req.params.theTag});
     res.json(data);
 });
 
@@ -105,11 +117,6 @@ app.get("/prog", async (req, res) =>{
     res.json(data)
 });
 
-//Create a new Video object 
-app.post("/up-video", async (req, res) => {
-    const data = req.body;
-    res.send("hello");
-});
 
 //Add or create to a new category
 app.post("/up-category", async (req, res) => {
@@ -119,7 +126,6 @@ app.post("/up-category", async (req, res) => {
         if (c.length === 0){await category.create(data[1]);}
         else {await category.findOneAndReplace(data[0], data[1]);}
     } catch(err){
-        console.log(err);
         res.send(false);
     } finally{
         res.send(true);
@@ -142,6 +148,69 @@ app.post("/up-prog", async (req, res) => {
         }
     }
     else{res.send(false);}
+});
+
+//Add a vieo object
+app.post("/up-video", (req, res) => {
+    const data = req.body;
+    try{
+        video.create(data);
+    } catch{
+        console.log(err);
+        res.send(false);
+    } finally{
+        res.send(true);
+    }
+});
+
+//Add a foto object
+app.post("/up-photo", async (req, res) => {
+    const data = req.body;
+    try{photo.create(data);}
+    catch{res.send(false);}
+    finally{res.send(true);}
+});
+
+//Delete a video by it's tag
+app.post("/del-video/tag", async (req, res) => {
+    const data = req.body[0];
+    try{await video.deleteOne({tag:data});}
+    catch{res.send(false);}
+    finally{res.send(true);}
+});
+
+//Delete a Photo by it's tag
+app.post("/del-photo/tag", async (req, res) => {
+    const data = req.body[0];
+    try{await photo.deleteOne({tag:data});}
+    catch{res.send(false);}
+    finally{res.send(true);}
+});
+
+//Add a Video to the Slide 
+app.post("/up-slide", async (req, res) => {
+    const data = req.body;
+    try{slide.create(data);}
+    catch{res.send(false);}
+    finally{res.send(true);}
+});
+
+//Delete Video from Slide by its tag
+app.post("/del-slide/tag", async (req, res) => {
+    const data = req.body[0];
+    try{await slide.deleteOne({tag:data});}
+    catch{res.send(false);}
+    finally{res.send(true);}
+});
+
+//Delete an item from Category
+app.post("/del-category", async (req, res) => {
+    const data = req.body[0];
+    try{
+        const c = await category.findOne({name:data});
+        if (c.count === 1){await category.deleteOne({name:data});}
+        else {await category.updateOne({name:data}, {count:c.count-1});}
+    } catch{res.send(false);} finally{res.send(true);}
 });
 
 module.exports = app;
